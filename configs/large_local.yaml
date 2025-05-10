@@ -1,0 +1,17 @@
+{
+  "grid": {"n_particles_1d": 128, "n_grid_1d": 256, "box_size_mpc_h": 100.0},
+  "cosmology": {
+    "h0": 67.66,
+    "omega_m": 0.3097,
+    "omega_lambda": 0.6903,
+    "sigma8": 0.811,
+    "n_s": 0.96,
+    "a_initial": 0.01,
+    "a_final": 1.0
+  },
+  "integrator": {"num_steps": 80, "method": "kdk_a"},
+  "output": {"output_root": "outputs", "save_density": true, "save_plots": true},
+  "performance": {"fft_backend": "scipy", "use_numba": false},
+  "validation": {"enable_invariants": true, "enable_reference_compare": false},
+  "random_seed": 38
+}
