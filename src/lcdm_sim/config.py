@@ -83,6 +83,10 @@ def simulation_config_from_dict(data: Mapping[str, Any]) -> SimulationConfig:
             n_s=float(cosmology["n_s"]),
             a_initial=float(cosmology["a_initial"]),
             a_final=float(cosmology["a_final"]),
+            omega_b=float(cosmology.get("omega_b", 0.0486)),
+            t_cmb=float(cosmology.get("t_cmb", 2.7255)),
+            a_s=float(cosmology.get("a_s", 2.1e-9)),
+            k_pivot_mpc=float(cosmology.get("k_pivot_mpc", 0.05)),
         ),
         integrator=IntegratorConfig(
             num_steps=int(integrator["num_steps"]),
@@ -96,10 +100,13 @@ def simulation_config_from_dict(data: Mapping[str, Any]) -> SimulationConfig:
         performance=PerformanceConfig(
             fft_backend=str(performance.get("fft_backend", "scipy")),
             use_numba=bool(performance.get("use_numba", False)),
+            fft_workers=int(performance.get("fft_workers", 1)),
         ),
         validation=ValidationConfig(
             enable_invariants=bool(validation.get("enable_invariants", True)),
-            enable_reference_compare=bool(validation.get("enable_reference_compare", False)),
+            enable_reference_compare=bool(
+                validation.get("enable_reference_compare", False)
+            ),
         ),
         random_seed=int(data.get("random_seed", 38)),
     )

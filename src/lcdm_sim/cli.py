@@ -13,11 +13,17 @@ def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="lcdm-sim", description="lcdm_sim CLI (WIP)")
     subparsers = parser.add_subparsers(dest="command", required=True)
 
-    run_parser = subparsers.add_parser("run", help="Run a simulation from a config file")
-    run_parser.add_argument("--config", type=Path, required=True, help="Path to simulation config (.yaml)")
+    run_parser = subparsers.add_parser(
+        "run", help="Run a simulation from a config file"
+    )
+    run_parser.add_argument(
+        "--config", type=Path, required=True, help="Path to simulation config (.yaml)"
+    )
     run_parser.set_defaults(handler=_handle_run)
 
-    plot_parser = subparsers.add_parser("plot", help="Generate plots from an existing run directory")
+    plot_parser = subparsers.add_parser(
+        "plot", help="Generate plots from an existing run directory"
+    )
     plot_parser.add_argument("--run-dir", type=Path, required=True)
     plot_parser.set_defaults(handler=_handle_plot)
 

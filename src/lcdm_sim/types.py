@@ -4,12 +4,26 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
+import numpy as np
+
 
 @dataclass(frozen=True)
 class GridConfig:
     n_particles_1d: int
     n_grid_1d: int
     box_size_mpc_h: float
+
+    @property
+    def particle_spacing_mpc_h(self) -> float:
+        return self.box_size_mpc_h / float(self.n_particles_1d)
+
+    @property
+    def grid_spacing_mpc_h(self) -> float:
+        return self.box_size_mpc_h / float(self.n_grid_1d)
+
+    @property
+    def n_particles(self) -> int:
+        return int(self.n_particles_1d) ** 3
 
 
 @dataclass(frozen=True)
@@ -21,6 +35,10 @@ class CosmologyConfig:
     n_s: float
     a_initial: float
     a_final: float
+    omega_b: float = 0.0486
+    t_cmb: float = 2.7255
+    a_s: float = 2.1e-9
+    k_pivot_mpc: float = 0.05
 
 
 @dataclass(frozen=True)
@@ -40,6 +58,7 @@ class OutputConfig:
 class PerformanceConfig:
     fft_backend: str = "scipy"
     use_numba: bool = False
+    fft_workers: int = 1
 
 
 @dataclass(frozen=True)
@@ -57,3 +76,42 @@ class SimulationConfig:
     performance: PerformanceConfig
     validation: ValidationConfig
     random_seed: int = 38
+
+
+@dataclass(frozen=True)
+class MeshField:
+    data: np.ndarray
+    box_size_mpc_h: float
+    units: str = "dimensionless"
+
+    @property
+    def shape(self) -> tuple[int, ...]:
+        return tuple(self.data.shape)
+
+    @property
+    def n_grid_1d(self) -> int:
+        return int(self.data.shape[0])
+
+    @property
+    def grid_spacing_mpc_h(self) -> float:
+        return self.box_size_mpc_h / float(self.n_grid_1d)
+
+
+@dataclass(frozen=True)
+class ParticleState:
+    positions: np.ndarray
+    velocities: np.ndarray
+    mass: float = 1.0
+    a: float = 1.0
+
+
+@dataclass(frozen=True)
+class AccelerationField:
+    ax: np.ndarray
+    ay: np.ndarray
+    az: np.ndarray
+    box_size_mpc_h: float
+    units: str = "comoving"
+
+    def stacked(self) -> np.ndarray:
+        return np.stack((self.ax, self.ay, self.az), axis=-1)
