@@ -2,7 +2,9 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
+from pathlib import Path
+from typing import Any
 
 import numpy as np
 
@@ -115,3 +117,34 @@ class AccelerationField:
 
     def stacked(self) -> np.ndarray:
         return np.stack((self.ax, self.ay, self.az), axis=-1)
+
+
+@dataclass(frozen=True)
+class Snapshot:
+    step: int
+    particle_state: ParticleState
+    density_field: MeshField | None = None
+    metadata: dict[str, Any] = field(default_factory=dict)
+
+    @property
+    def a(self) -> float:
+        return float(self.particle_state.a)
+
+
+@dataclass(frozen=True)
+class RunResult:
+    config: SimulationConfig
+    initial_density: MeshField
+    initial_state: ParticleState
+    snapshots: list[Snapshot]
+    history: list[dict[str, Any]]
+    step_durations_s: list[float]
+    total_runtime_s: float
+    run_id: str
+    output_dir: str | None = None
+
+    @property
+    def output_path(self) -> Path | None:
+        if self.output_dir is None:
+            return None
+        return Path(self.output_dir)
