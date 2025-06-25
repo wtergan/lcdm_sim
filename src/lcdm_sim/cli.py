@@ -7,6 +7,7 @@ from pathlib import Path
 from typing import Sequence
 
 from .config import load_simulation_config
+from .validation import save_validation_report_json, validate_run_directory
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -60,8 +61,17 @@ def _handle_plot(args: argparse.Namespace) -> int:
 
 
 def _handle_validate(args: argparse.Namespace) -> int:
-    print(f"validate (stub): run_dir={args.run_dir}, reference={args.reference}")
-    return 0
+    report = validate_run_directory(args.run_dir, reference_run_dir=args.reference)
+    metrics_dir = Path(args.run_dir) / "metrics"
+    report_path = save_validation_report_json(
+        report, metrics_dir / "validation_report.json"
+    )
+    print(
+        "validation: "
+        f"ok={report.ok} passed={report.summary['num_passed']} "
+        f"failed={report.summary['num_failed']} report={report_path}"
+    )
+    return 0 if report.ok else 1
 
 
 def _handle_export_web_dataset(args: argparse.Namespace) -> int:

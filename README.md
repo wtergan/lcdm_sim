@@ -1,5 +1,16 @@
-# lcdm_sim (WIP)
+# lcdm_sim
 
-Modular LCDM particle-mesh simulation project extracted from exploratory notebooks.
+Modular LCDM particle-mesh simulation toolkit (work in progress).
 
-This first slice sets up the package skeleton, typed configuration loading, and CLI command scaffolding.
+## Current state
+- Phases 1-4 core engine implemented (config, physics core, simulation loop, plotting/diagnostics)
+- Validation module implemented
+- Package-backed teaching notebooks added in `notebooks/`
+
+## Quickstart
+```bash
+source /home/gilgames/envs/lcdm-sim/bin/activate
+PYTHONPATH=src pytest -q tests
+```
+
+See `docs/reproducibility.md` for a reproducible testing workflow.
