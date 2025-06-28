@@ -5,10 +5,21 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "lcdm-sim"
 version = "0.1.0a0"
-description = "Modular LCDM particle-mesh simulation toolkit (WIP)"
+description = "Modular LCDM particle-mesh simulation toolkit"
 readme = "README.md"
 requires-python = ">=3.11"
-dependencies = []
+dependencies = [
+    "h5py>=3.8",
+    "matplotlib>=3.7",
+    "numpy>=1.24",
+    "PyYAML>=6.0",
+    "scipy>=1.10",
+]
+
+[project.optional-dependencies]
+dev = ["nbformat>=5.8", "pytest>=7.0", "ruff>=0.4"]
+interactive = ["plotly>=5.0"]
+performance = ["numba>=0.58", "pyfftw>=0.13"]
 
 [project.scripts]
 lcdm-sim = "lcdm_sim.cli:main"
