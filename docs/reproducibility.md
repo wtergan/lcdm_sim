@@ -18,8 +18,7 @@ Use this guide for:
 ```bash
 uv venv .venv
 source .venv/bin/activate
-uv pip install -e .
-uv pip install numpy scipy pyyaml h5py matplotlib plotly pytest ruff nbformat pyfftw numba
+uv pip install -e ".[dev,interactive]"
 ```
 
 ### Option B: `venv` + `pip`
@@ -27,16 +26,15 @@ uv pip install numpy scipy pyyaml h5py matplotlib plotly pytest ruff nbformat py
 ```bash
 python -m venv .venv
 source .venv/bin/activate
-pip install -e .
-pip install numpy scipy pyyaml h5py matplotlib plotly pytest ruff nbformat pyfftw numba
+pip install -e ".[dev,interactive]"
 ```
 
 Notes:
 
-- The project metadata is intentionally minimal during this phase of development,
-  so supporting scientific/plotting/test dependencies are installed explicitly.
-- If you are using a historically pinned environment, keep those versions and
-  adapt code/tests rather than upgrading packages unless required.
+- Runtime and test dependencies are declared in `pyproject.toml`; optional
+  extras cover interactive Plotly views and performance experiments.
+- If you are using a pinned environment, keep those versions and adapt
+  code/tests rather than upgrading packages unless required.
 
 ## Baseline Verification
 
@@ -57,7 +55,8 @@ Expected result on a fully provisioned environment:
 
 ```bash
 PYTHONPATH=src python -m lcdm_sim.cli --help
-PYTHONPATH=src python -m lcdm_sim.cli run --config configs/smoke.yaml
+PYTHONPATH=src python -m lcdm_sim.cli run --config configs/gallery.yaml --out-dir outputs/gallery --num-snapshots 5
+PYTHONPATH=src python -m lcdm_sim.cli plot --run-dir outputs/gallery --out-dir docs/assets/simulation --max-snapshots 5
 ```
 
 ### Validation from a run directory
