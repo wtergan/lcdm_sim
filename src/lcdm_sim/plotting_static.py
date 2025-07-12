@@ -6,6 +6,7 @@ from pathlib import Path
 
 import numpy as np
 
+from .diagnostics import estimate_power_spectrum
 from .types import AccelerationField, MeshField, ParticleState, Snapshot
 
 
@@ -280,6 +281,110 @@ def plot_density_evolution(
     if last_im is not None:
         fig.colorbar(last_im, ax=list(axes[0]), shrink=0.72, label="overdensity")
     fig.suptitle("Density Field Evolution")
+    fig.savefig(out, dpi=160)
+    plt.close(fig)
+    return out
+
+
+def plot_particle_evolution(
+    snapshots: list[Snapshot],
+    output_path: str | Path,
+    *,
+    dims: tuple[int, int] = (0, 1),
+    max_points: int = 12000,
+    max_snapshots: int = 6,
+    seed: int = 0,
+) -> Path:
+    """Plot projected particle positions across saved simulation stages."""
+
+    if not snapshots:
+        raise ValueError("At least one snapshot is required")
+    chosen = _evenly_spaced_items(snapshots, max(1, int(max_snapshots)))
+    d0, d1 = int(dims[0]) % 3, int(dims[1]) % 3
+    n_particles = chosen[0].particle_state.positions.shape[0]
+    sample_idx: np.ndarray | None = None
+    if n_particles > max_points and all(
+        snapshot.particle_state.positions.shape[0] == n_particles for snapshot in chosen
+    ):
+        rng = np.random.default_rng(seed)
+        sample_idx = rng.choice(n_particles, size=int(max_points), replace=False)
+
+    projected: list[np.ndarray] = []
+    for snapshot in chosen:
+        pts = np.asarray(snapshot.particle_state.positions, dtype=float)
+        if sample_idx is not None:
+            pts = pts[sample_idx]
+        elif pts.shape[0] > max_points:
+            rng = np.random.default_rng(seed)
+            idx = rng.choice(pts.shape[0], size=int(max_points), replace=False)
+            pts = pts[idx]
+        projected.append(pts[:, (d0, d1)])
+
+    finite = np.concatenate(projected, axis=0)
+    mins = np.nanmin(finite, axis=0)
+    maxs = np.nanmax(finite, axis=0)
+    padding = np.maximum((maxs - mins) * 0.02, 1e-6)
+
+    plt = _plt()
+    out = _ensure_parent(output_path)
+    ncols = len(chosen)
+    fig, axes = plt.subplots(
+        1,
+        ncols,
+        figsize=(max(3.0 * ncols, 4.0), 3.35),
+        constrained_layout=True,
+        squeeze=False,
+    )
+    for ax, snapshot, pts in zip(axes[0], chosen, projected):
+        ax.scatter(pts[:, 0], pts[:, 1], s=1.5, alpha=0.3, linewidths=0)
+        ax.set_title(f"step {snapshot.step}\na={snapshot.a:.3f}")
+        ax.set_xlim(mins[0] - padding[0], maxs[0] + padding[0])
+        ax.set_ylim(mins[1] - padding[1], maxs[1] + padding[1])
+        ax.set_xticks([])
+        ax.set_yticks([])
+        ax.set_aspect("equal")
+    fig.suptitle("Particle Distribution Evolution")
+    fig.savefig(out, dpi=160)
+    plt.close(fig)
+    return out
+
+
+def plot_power_spectrum_evolution(
+    snapshots: list[Snapshot],
+    output_path: str | Path,
+    *,
+    nbins: int = 16,
+    max_snapshots: int = 6,
+) -> Path:
+    """Plot binned density power spectra for saved simulation stages."""
+
+    density_snapshots = [s for s in snapshots if s.density_field is not None]
+    if not density_snapshots:
+        raise ValueError("At least one snapshot with a density field is required")
+    chosen = _evenly_spaced_items(density_snapshots, max(1, int(max_snapshots)))
+
+    plt = _plt()
+    out = _ensure_parent(output_path)
+    fig, ax = plt.subplots(figsize=(6.4, 4.6), constrained_layout=True)
+    for snapshot in chosen:
+        spectrum = estimate_power_spectrum(snapshot.density_field, nbins=nbins)
+        k = np.asarray(spectrum["k_centers"], dtype=float)
+        power = np.asarray(spectrum["power"], dtype=float)
+        mask = (k > 0) & (power > 0) & np.isfinite(k) & np.isfinite(power)
+        ax.loglog(
+            k[mask],
+            power[mask],
+            marker="o",
+            ms=2.5,
+            lw=1.2,
+            label=f"a={snapshot.a:.3f}",
+        )
+
+    ax.set_title("Density Power Spectrum Evolution")
+    ax.set_xlabel("k [h/Mpc]")
+    ax.set_ylabel("P(k)")
+    ax.grid(True, which="both", alpha=0.2)
+    ax.legend(loc="best")
     fig.savefig(out, dpi=160)
     plt.close(fig)
     return out

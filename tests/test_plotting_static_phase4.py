@@ -15,9 +15,12 @@ def test_static_plotting_writes_png_artifacts(tiny_config, tmp_path):
         plot_acceleration_quiver,
         plot_density_projection,
         plot_grf_slice,
+        plot_particle_evolution,
         plot_particle_scatter,
         plot_power_spectrum,
+        plot_power_spectrum_evolution,
     )
+    from lcdm_sim.types import Snapshot
     from lcdm_sim.spectra import power_spectrum
     from lcdm_sim.zeldovich import initial_conditions_from_density
 
@@ -36,6 +39,20 @@ def test_static_plotting_writes_png_artifacts(tiny_config, tmp_path):
     k = np.logspace(-2, 0, 16)
     pk = power_spectrum(k, tiny_config.cosmology, a=tiny_config.cosmology.a_initial)
     paths.append(plot_power_spectrum(k, pk, Path(tmp_path) / "pk.png"))
+    snapshots = [
+        Snapshot(step=0, particle_state=state, density_field=delta0),
+        Snapshot(step=1, particle_state=state, density_field=delta0),
+    ]
+    paths.extend(
+        [
+            plot_particle_evolution(
+                snapshots, Path(tmp_path) / "particle_evolution.png"
+            ),
+            plot_power_spectrum_evolution(
+                snapshots, Path(tmp_path) / "power_spectrum_evolution.png"
+            ),
+        ]
+    )
 
     for p in paths:
         assert Path(p).exists()

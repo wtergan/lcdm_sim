@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import numpy as np
 
-from .types import AccelerationField, MeshField
+from .types import AccelerationField, MeshField, Snapshot
 
 
 def density_stats(field: MeshField) -> dict[str, object]:
@@ -76,6 +76,36 @@ def estimate_power_spectrum(
         counts.append(count)
 
     return {"k_centers": centers, "power": pk_bins, "counts": counts}
+
+
+def summarize_density_snapshots(
+    snapshots: list[Snapshot], nbins: int = 16
+) -> list[dict[str, object]]:
+    """Summarize clustering growth for each snapshot carrying a density field."""
+
+    summaries: list[dict[str, object]] = []
+    for snapshot in snapshots:
+        if snapshot.density_field is None:
+            continue
+        data = np.asarray(snapshot.density_field.data, dtype=float)
+        summaries.append(
+            {
+                "step": int(snapshot.step),
+                "a": float(snapshot.a),
+                "density": density_stats(snapshot.density_field),
+                "density_percentiles": {
+                    "p50": float(np.percentile(data, 50.0)),
+                    "p90": float(np.percentile(data, 90.0)),
+                    "p99": float(np.percentile(data, 99.0)),
+                },
+                "fraction_cells_delta_gt_1": float(np.mean(data > 1.0)),
+                "fraction_cells_delta_gt_5": float(np.mean(data > 5.0)),
+                "power_spectrum": estimate_power_spectrum(
+                    snapshot.density_field, nbins=nbins
+                ),
+            }
+        )
+    return summaries
 
 
 def compare_cic_to_initial(initial: MeshField, cic: MeshField) -> dict[str, float]:

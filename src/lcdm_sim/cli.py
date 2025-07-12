@@ -9,13 +9,16 @@ from pathlib import Path
 from typing import Sequence
 
 from .config import load_simulation_config
+from .diagnostics import summarize_density_snapshots
 from .io_hdf5 import load_snapshot_hdf5
 from .plotting_static import (
     plot_density_evolution,
     plot_density_projection,
     plot_density_slice,
     plot_history_summary,
+    plot_particle_evolution,
     plot_particle_scatter,
+    plot_power_spectrum_evolution,
 )
 from .simulation import run_simulation
 from .validation import (
@@ -182,14 +185,17 @@ def _handle_plot(args: argparse.Namespace) -> int:
     chosen_paths = _select_evenly_spaced(snapshot_paths, args.max_snapshots)
     snapshots = [load_snapshot_hdf5(path) for path in chosen_paths]
     out_dir = args.out_dir or (args.run_dir / "plots")
-    out_dir.mkdir(parents=True, exist_ok=True)
+    particle_dir = out_dir / "snapshots" / "particles"
+    density_dir = out_dir / "snapshots" / "density"
+    summary_dir = out_dir / "summaries"
+    analysis_dir = out_dir / "analysis"
 
     artifacts: list[dict[str, str | int | float]] = []
     for snapshot in snapshots:
         slug = _snapshot_slug(snapshot.step, snapshot.a)
         particle_path = plot_particle_scatter(
             snapshot.particle_state,
-            out_dir / f"{slug}_particles.png",
+            particle_dir / f"{slug}_particles.png",
             max_points=args.max_points,
         )
         artifacts.append(
@@ -206,14 +212,14 @@ def _handle_plot(args: argparse.Namespace) -> int:
 
         slice_path = plot_density_slice(
             snapshot.density_field,
-            out_dir / f"{slug}_density_slice.png",
+            density_dir / f"{slug}_density_slice.png",
             axis=args.axis,
             index=args.slice_index,
             title=f"Density Slice: step {snapshot.step}, a={snapshot.a:.3f}",
         )
         projection_path = plot_density_projection(
             snapshot.density_field,
-            out_dir / f"{slug}_density_projection.png",
+            density_dir / f"{slug}_density_projection.png",
             axis=args.axis,
         )
         artifacts.extend(
@@ -233,21 +239,45 @@ def _handle_plot(args: argparse.Namespace) -> int:
             ]
         )
 
+    particle_evolution_path = plot_particle_evolution(
+        snapshots,
+        summary_dir / "particle_evolution.png",
+        max_points=args.max_points,
+        max_snapshots=args.max_snapshots,
+    )
+    artifacts.append(
+        {"kind": "particle_evolution", "path": str(particle_evolution_path)}
+    )
+
     if any(snapshot.density_field is not None for snapshot in snapshots):
         evolution_path = plot_density_evolution(
             snapshots,
-            out_dir / "density_evolution.png",
+            summary_dir / "density_evolution.png",
             axis=args.axis,
             index=args.slice_index,
             max_snapshots=args.max_snapshots,
         )
         artifacts.append({"kind": "density_evolution", "path": str(evolution_path)})
+        power_path = plot_power_spectrum_evolution(
+            snapshots,
+            summary_dir / "power_spectrum_evolution.png",
+            max_snapshots=args.max_snapshots,
+        )
+        artifacts.append({"kind": "power_spectrum_evolution", "path": str(power_path)})
+        analysis_path = _write_json(
+            analysis_dir / "snapshot_analysis.json",
+            {
+                "run_dir": str(args.run_dir),
+                "snapshots": summarize_density_snapshots(snapshots),
+            },
+        )
+        artifacts.append({"kind": "snapshot_analysis", "path": str(analysis_path)})
 
     history_path = args.run_dir / "metrics" / "history.json"
     if history_path.exists():
         history = json.loads(history_path.read_text(encoding="utf-8"))
         history_plot_path = plot_history_summary(
-            history, out_dir / "history_summary.png"
+            history, summary_dir / "history_summary.png"
         )
         artifacts.append({"kind": "history_summary", "path": str(history_plot_path)})
 

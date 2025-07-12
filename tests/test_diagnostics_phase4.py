@@ -8,6 +8,7 @@ def test_diagnostics_stats_and_power_spectrum_estimate_are_finite(tiny_config):
         compare_cic_to_initial,
         density_stats,
         estimate_power_spectrum,
+        summarize_density_snapshots,
     )
     from lcdm_sim.forces import compute_comoving_acceleration_grid
     from lcdm_sim.grf import generate_grf
@@ -22,6 +23,11 @@ def test_diagnostics_stats_and_power_spectrum_estimate_are_finite(tiny_config):
     a_stats = acceleration_stats(accel)
     ps = estimate_power_spectrum(delta_cic, nbins=6)
     cmp = compare_cic_to_initial(delta0, delta_cic)
+    from lcdm_sim.types import Snapshot
+
+    summary = summarize_density_snapshots(
+        [Snapshot(step=0, particle_state=state, density_field=delta_cic)], nbins=6
+    )
 
     assert d_stats["shape"] == list(delta_cic.data.shape)
     assert np.isfinite(d_stats["std"])
@@ -30,3 +36,6 @@ def test_diagnostics_stats_and_power_spectrum_estimate_are_finite(tiny_config):
     assert np.all(np.asarray(ps["power"]) >= 0.0)
     assert np.isfinite(cmp["rmse"])
     assert "corrcoef" in cmp
+    assert summary[0]["step"] == 0
+    assert np.isfinite(summary[0]["fraction_cells_delta_gt_1"])
+    assert len(summary[0]["power_spectrum"]["power"]) > 0

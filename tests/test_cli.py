@@ -147,7 +147,22 @@ class CliTests(unittest.TestCase):
             self.assertTrue(manifest.exists())
             data = json.loads(manifest.read_text(encoding="utf-8"))
             self.assertGreaterEqual(len(data["artifacts"]), 1)
-            self.assertTrue((plot_dir / "density_evolution.png").exists())
+            self.assertTrue((plot_dir / "summaries" / "density_evolution.png").exists())
+            self.assertTrue(
+                (plot_dir / "summaries" / "particle_evolution.png").exists()
+            )
+            self.assertTrue(
+                (plot_dir / "summaries" / "power_spectrum_evolution.png").exists()
+            )
+            analysis = json.loads(
+                (plot_dir / "analysis" / "snapshot_analysis.json").read_text(
+                    encoding="utf-8"
+                )
+            )
+            self.assertEqual(len(analysis["snapshots"]), 3)
+            self.assertEqual(
+                len(list((plot_dir / "snapshots" / "particles").glob("*.png"))), 3
+            )
 
 
 if __name__ == "__main__":
