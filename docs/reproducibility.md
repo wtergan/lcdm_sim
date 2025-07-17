@@ -55,9 +55,12 @@ Expected result on a fully provisioned environment:
 
 ```bash
 PYTHONPATH=src python -m lcdm_sim.cli --help
-PYTHONPATH=src python -m lcdm_sim.cli run --config configs/gallery.yaml --out-dir outputs/gallery --num-snapshots 5
-PYTHONPATH=src python -m lcdm_sim.cli plot --run-dir outputs/gallery --out-dir docs/assets/simulation --max-snapshots 5
+PYTHONPATH=src python -m lcdm_sim.cli run --config configs/gallery/gallery_32.yaml --out-dir outputs/gallery --num-snapshots 5
+PYTHONPATH=src python -m lcdm_sim.cli plot --run-dir outputs/gallery --out-dir docs/assets/simulations/gallery-32 --max-snapshots 5
 ```
+
+Generated galleries keep summaries, individual snapshot renders, and numeric
+analysis in separate subdirectories; see `docs/README.md` for the layout.
 
 ### Validation from a run directory
 

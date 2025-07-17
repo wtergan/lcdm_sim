@@ -12,37 +12,71 @@ system with a kick-drift-kick leapfrog integrator.
 
 ## Results
 
-The gallery below was generated from the checked-in `configs/gallery.yaml` run:
+The gallery below was generated from the checked-in
+`configs/gallery/gallery_128.yaml` run:
 
 ```bash
 PYTHONPATH=src python -m lcdm_sim.cli run \
-  --config configs/gallery.yaml \
-  --out-dir outputs/gallery \
+  --config configs/gallery/gallery_128.yaml \
+  --out-dir outputs/gallery_128 \
   --num-snapshots 5
 
 PYTHONPATH=src python -m lcdm_sim.cli plot \
-  --run-dir outputs/gallery \
-  --out-dir docs/assets/simulation \
-  --max-snapshots 5
+  --run-dir outputs/gallery_128 \
+  --out-dir docs/assets/simulations/gallery-128 \
+  --max-snapshots 5 \
+  --max-points 50000
 ```
 
-The run uses `32^3` particles on a `32^3` mesh, from scale factor `a=0.05` to
-`a=1.0`, with five saved snapshots. It is intentionally small enough to rerun on
-a laptop while still showing gravitational growth from a noisy early density
-field into sharper overdense structure.
+The showcase run uses `128^3` particles on a `128^3` mesh, from scale factor
+`a=0.05` to `a=1.0`, with five saved snapshots, resolving substantially
+sharper filamentary structure than the small quickstart run.
 
-![Density field evolution](docs/assets/simulation/density_evolution.png)
+### Density Field Growth
 
-Final particle positions at `a=1.0`:
+![Density field evolution](docs/assets/simulations/gallery-128/summaries/density_evolution.png)
 
-![Final particle distribution](docs/assets/simulation/snapshot_0010_a1p000_particles.png)
+The first and final density slices make the growth endpoints easier to inspect
+at full figure size:
 
-Run-history diagnostics:
+| Initial density, `a=0.05` | Final density, `a=1.0` |
+| --- | --- |
+| ![Initial density field](docs/assets/simulations/gallery-128/snapshots/density/snapshot_0000_a0p050_density_slice.png) | ![Final density field](docs/assets/simulations/gallery-128/snapshots/density/snapshot_0010_a1p000_density_slice.png) |
 
-![History summary](docs/assets/simulation/history_summary.png)
+### Particle Distribution Growth
 
-Additional generated PNGs and the plot manifest live under
-`docs/assets/simulation/`.
+The same five saved stages projected into particle position space:
+
+![Particle distribution evolution](docs/assets/simulations/gallery-128/summaries/particle_evolution.png)
+
+| Initial particle positions, `a=0.05` | Final particle positions, `a=1.0` |
+| --- | --- |
+| ![Initial particle distribution](docs/assets/simulations/gallery-128/snapshots/particles/snapshot_0000_a0p050_particles.png) | ![Final particle distribution](docs/assets/simulations/gallery-128/snapshots/particles/snapshot_0010_a1p000_particles.png) |
+
+### Quantitative Growth
+
+The binned density power spectrum grows across the saved stages, showing the
+increase in clustering strength beyond a visual comparison:
+
+![Density power spectrum evolution](docs/assets/simulations/gallery-128/summaries/power_spectrum_evolution.png)
+
+For this `128^3` run, the saved snapshot analysis gives:
+
+| Quantity | Initial, `a=0.05` | Final, `a=1.0` |
+| --- | ---: | ---: |
+| Density standard deviation | 0.626 | 1.916 |
+| Maximum overdensity | 20.481 | 63.867 |
+| 99th-percentile overdensity | 2.307 | 8.277 |
+| Fraction of cells with `delta > 1` | 6.27% | 13.26% |
+| Fraction of cells with `delta > 5` | 0.07% | 2.57% |
+
+Run-history diagnostics retain the stepwise scale factor, density standard
+deviation, and velocity RMS:
+
+![History summary](docs/assets/simulations/gallery-128/summaries/history_summary.png)
+
+Additional individual PNGs, the plot manifest, and machine-readable
+`snapshot_analysis.json` live under `docs/assets/simulations/gallery-128/`.
 
 ## Physics Pipeline
 
@@ -105,8 +139,11 @@ experiments.
 
 ```text
 lcdm_sim/
-├── configs/                     # Preset simulation configs
-├── docs/                        # Reproducibility docs and generated assets
+├── configs/
+│   ├── gallery/                 # Matched README/benchmark resolution presets
+│   └── scaling/                 # Larger exploratory run presets
+├── docs/
+│   └── assets/simulations/      # Organized versioned result galleries
 ├── notebooks/                   # Package-backed teaching notebooks
 ├── src/lcdm_sim/
 │   ├── config.py                # Typed config loading
@@ -160,11 +197,11 @@ PYTHONPATH=src pytest -q tests
 
 ## CLI Usage
 
-Run a deterministic gallery simulation:
+Run the lightweight deterministic gallery simulation:
 
 ```bash
 PYTHONPATH=src python -m lcdm_sim.cli run \
-  --config configs/gallery.yaml \
+  --config configs/gallery/gallery_32.yaml \
   --out-dir outputs/gallery \
   --num-snapshots 5
 ```
@@ -181,9 +218,14 @@ Generate PNGs from those snapshots:
 ```bash
 PYTHONPATH=src python -m lcdm_sim.cli plot \
   --run-dir outputs/gallery \
-  --out-dir docs/assets/simulation \
+  --out-dir docs/assets/simulations/gallery-32 \
   --max-snapshots 5
 ```
+
+To reproduce the higher-resolution README gallery, run
+`configs/gallery/gallery_128.yaml` and plot into
+`docs/assets/simulations/gallery-128/` as
+shown in the Results section.
 
 Validate an existing run directory:
 
