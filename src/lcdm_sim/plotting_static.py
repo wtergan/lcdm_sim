@@ -6,7 +6,7 @@ from pathlib import Path
 
 import numpy as np
 
-from .types import AccelerationField, MeshField, ParticleState
+from .types import AccelerationField, MeshField, ParticleState, Snapshot
 
 
 def _plt():
@@ -218,5 +218,113 @@ def plot_power_spectrum(
     ax.set_title("Power Spectrum")
     ax.legend(loc="best")
     fig.savefig(out, dpi=150)
+    plt.close(fig)
+    return out
+
+
+def _evenly_spaced_items(items, max_items: int):
+    if len(items) <= max_items:
+        return list(items)
+    indices = np.linspace(0, len(items) - 1, num=max_items, dtype=int)
+    return [items[int(i)] for i in sorted(set(indices))]
+
+
+def plot_density_evolution(
+    snapshots: list[Snapshot],
+    output_path: str | Path,
+    *,
+    axis: int = 2,
+    index: int | None = None,
+    max_snapshots: int = 6,
+    cmap: str = "viridis",
+) -> Path:
+    """Plot density slices from several saved snapshots as one evolution panel."""
+
+    density_snapshots = [s for s in snapshots if s.density_field is not None]
+    if not density_snapshots:
+        raise ValueError("At least one snapshot with a density field is required")
+
+    chosen = _evenly_spaced_items(density_snapshots, max(1, int(max_snapshots)))
+    slices = [
+        _slice_2d(np.asarray(s.density_field.data, dtype=float), axis=axis, index=index)
+        for s in chosen
+        if s.density_field is not None
+    ]
+
+    finite_values = np.concatenate([arr[np.isfinite(arr)].ravel() for arr in slices])
+    if finite_values.size:
+        vmin, vmax = np.percentile(finite_values, [2.0, 98.0])
+    else:
+        vmin, vmax = 0.0, 1.0
+    if not np.isfinite(vmin) or not np.isfinite(vmax) or vmin == vmax:
+        vmin, vmax = None, None
+
+    plt = _plt()
+    out = _ensure_parent(output_path)
+    ncols = len(chosen)
+    fig, axes = plt.subplots(
+        1,
+        ncols,
+        figsize=(max(3.0 * ncols, 4.0), 3.35),
+        constrained_layout=True,
+        squeeze=False,
+    )
+
+    last_im = None
+    for ax, snapshot, arr in zip(axes[0], chosen, slices):
+        last_im = ax.imshow(arr.T, origin="lower", cmap=cmap, vmin=vmin, vmax=vmax)
+        ax.set_title(f"step {snapshot.step}\na={snapshot.a:.3f}")
+        ax.set_xticks([])
+        ax.set_yticks([])
+
+    if last_im is not None:
+        fig.colorbar(last_im, ax=list(axes[0]), shrink=0.72, label="overdensity")
+    fig.suptitle("Density Field Evolution")
+    fig.savefig(out, dpi=160)
+    plt.close(fig)
+    return out
+
+
+def plot_history_summary(
+    history: list[dict[str, float | int]],
+    output_path: str | Path,
+) -> Path:
+    """Plot compact run-history diagnostics saved by the CLI."""
+
+    if not history:
+        raise ValueError("At least one history row is required")
+
+    plt = _plt()
+    out = _ensure_parent(output_path)
+    steps = np.asarray([row["step"] for row in history], dtype=float)
+    a_vals = np.asarray([row["a"] for row in history], dtype=float)
+    density_std = np.asarray([row["density_std"] for row in history], dtype=float)
+    velocity_rms = np.asarray([row["velocity_rms"] for row in history], dtype=float)
+
+    fig, axes = plt.subplots(1, 2, figsize=(8.2, 3.6), constrained_layout=True)
+    axes[0].plot(steps, a_vals, marker="o", lw=1.35)
+    axes[0].set_title("Scale Factor")
+    axes[0].set_xlabel("step")
+    axes[0].set_ylabel("a")
+
+    density_line = axes[1].plot(
+        steps, density_std, marker="o", lw=1.35, color="tab:blue", label="density std"
+    )
+    axes_twin = axes[1].twinx()
+    velocity_line = axes_twin.plot(
+        steps,
+        velocity_rms,
+        marker="s",
+        lw=1.15,
+        color="tab:orange",
+        label="velocity RMS",
+    )
+    axes[1].set_title("Run Diagnostics")
+    axes[1].set_xlabel("step")
+    axes[1].set_ylabel("density std", color="tab:blue")
+    axes_twin.set_ylabel("velocity RMS", color="tab:orange")
+    axes[1].legend(density_line + velocity_line, ["density std", "velocity RMS"])
+
+    fig.savefig(out, dpi=160)
     plt.close(fig)
     return out
