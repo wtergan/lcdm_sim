@@ -1,0 +1,111 @@
+{
+  "artifacts": [
+    {
+      "a": 0.05,
+      "kind": "particles",
+      "path": "docs/assets/simulation/snapshot_0000_a0p050_particles.png",
+      "step": 0
+    },
+    {
+      "a": 0.05,
+      "kind": "density_slice",
+      "path": "docs/assets/simulation/snapshot_0000_a0p050_density_slice.png",
+      "step": 0
+    },
+    {
+      "a": 0.05,
+      "kind": "density_projection",
+      "path": "docs/assets/simulation/snapshot_0000_a0p050_density_projection.png",
+      "step": 0
+    },
+    {
+      "a": 0.24000000000000002,
+      "kind": "particles",
+      "path": "docs/assets/simulation/snapshot_0002_a0p240_particles.png",
+      "step": 2
+    },
+    {
+      "a": 0.24000000000000002,
+      "kind": "density_slice",
+      "path": "docs/assets/simulation/snapshot_0002_a0p240_density_slice.png",
+      "step": 2
+    },
+    {
+      "a": 0.24000000000000002,
+      "kind": "density_projection",
+      "path": "docs/assets/simulation/snapshot_0002_a0p240_density_projection.png",
+      "step": 2
+    },
+    {
+      "a": 0.525,
+      "kind": "particles",
+      "path": "docs/assets/simulation/snapshot_0005_a0p525_particles.png",
+      "step": 5
+    },
+    {
+      "a": 0.525,
+      "kind": "density_slice",
+      "path": "docs/assets/simulation/snapshot_0005_a0p525_density_slice.png",
+      "step": 5
+    },
+    {
+      "a": 0.525,
+      "kind": "density_projection",
+      "path": "docs/assets/simulation/snapshot_0005_a0p525_density_projection.png",
+      "step": 5
+    },
+    {
+      "a": 0.715,
+      "kind": "particles",
+      "path": "docs/assets/simulation/snapshot_0007_a0p715_particles.png",
+      "step": 7
+    },
+    {
+      "a": 0.715,
+      "kind": "density_slice",
+      "path": "docs/assets/simulation/snapshot_0007_a0p715_density_slice.png",
+      "step": 7
+    },
+    {
+      "a": 0.715,
+      "kind": "density_projection",
+      "path": "docs/assets/simulation/snapshot_0007_a0p715_density_projection.png",
+      "step": 7
+    },
+    {
+      "a": 0.9999999999999999,
+      "kind": "particles",
+      "path": "docs/assets/simulation/snapshot_0010_a1p000_particles.png",
+      "step": 10
+    },
+    {
+      "a": 0.9999999999999999,
+      "kind": "density_slice",
+      "path": "docs/assets/simulation/snapshot_0010_a1p000_density_slice.png",
+      "step": 10
+    },
+    {
+      "a": 0.9999999999999999,
+      "kind": "density_projection",
+      "path": "docs/assets/simulation/snapshot_0010_a1p000_density_projection.png",
+      "step": 10
+    },
+    {
+      "kind": "density_evolution",
+      "path": "docs/assets/simulation/density_evolution.png"
+    },
+    {
+      "kind": "history_summary",
+      "path": "docs/assets/simulation/history_summary.png"
+    }
+  ],
+  "plotted_snapshots": [
+    "outputs/gallery/snapshots/snapshot_0000.h5",
+    "outputs/gallery/snapshots/snapshot_0002.h5",
+    "outputs/gallery/snapshots/snapshot_0005.h5",
+    "outputs/gallery/snapshots/snapshot_0007.h5",
+    "outputs/gallery/snapshots/snapshot_0010.h5"
+  ],
+  "run_dir": "outputs/gallery",
+  "snapshot_count": 5
+}
