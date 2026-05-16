@@ -1,198 +1,235 @@
 # `lcdm_sim`
 
-Modular LCDM particle-mesh (PM) simulation toolkit for learning, experimentation,
-and incremental engine development.
+Modular Lambda Cold Dark Matter (`LCDM`) particle-mesh simulation toolkit for
+learning, experimentation, and reproducible small-box demos.
 
-This project is a package-first refactor of earlier notebook-based PM simulation
-work. The goal is to preserve the teaching value of the notebooks while moving
-the core physics and simulation pipeline into testable, reusable Python modules.
+This repository started as a set of notebook experiments and was later refactored
+into a package-backed simulation engine. The implementation follows the standard
+PM learning pipeline: generate an initial density field, place particles with the
+Zel'dovich approximation, deposit mass with Cloud-In-Cell interpolation, solve
+Poisson's equation on a mesh, gather forces back to particles, and evolve the
+system with a kick-drift-kick leapfrog integrator.
 
-## Project Goals
+## Results
 
-- Build a modular LCDM PM simulation engine (GRF -> Zel'dovich ICs -> CIC ->
-  Poisson/forces -> leapfrog integration).
-- Keep the physics pipeline inspectable and easy to validate.
-- Provide diagnostics and plotting utilities (static + interactive).
-- Support package-backed teaching notebooks instead of monolithic notebook code.
-- Prepare for later browser-emulator/export workflows.
+The gallery below was generated from the checked-in `configs/gallery.yaml` run:
 
-## Current Status
+```bash
+PYTHONPATH=src python -m lcdm_sim.cli run \
+  --config configs/gallery.yaml \
+  --out-dir outputs/gallery \
+  --num-snapshots 5
 
-Implemented on this branch:
+PYTHONPATH=src python -m lcdm_sim.cli plot \
+  --run-dir outputs/gallery \
+  --out-dir docs/assets/simulation \
+  --max-snapshots 5
+```
 
-- Phase 1: package skeleton, typed config, CLI scaffold
-- Phase 2: physics core (`cosmology`, `spectra`, `grf`, `zeldovich`, `cic`,
-  `potential`, `forces`, FFT abstraction)
-- Phase 3: integrator + orchestration + HDF5 snapshot I/O
-- Phase 4: diagnostics + static/interactive plotting
-- Validation module and CLI `validate` integration
-- Package-backed teaching notebooks in `notebooks/`
+The run uses `32^3` particles on a `32^3` mesh, from scale factor `a=0.05` to
+`a=1.0`, with five saved snapshots. It is intentionally small enough to rerun on
+a laptop while still showing gravitational growth from a noisy early density
+field into sharper overdense structure.
 
-Still in progress / future work:
+![Density field evolution](docs/assets/simulation/density_evolution.png)
 
-- CLI `plot` command implementation
-- CLI `export-web-dataset` implementation
-- richer reference-comparison validation modes
-- browser-emulator dataset/export workflow polish
+Final particle positions at `a=1.0`:
+
+![Final particle distribution](docs/assets/simulation/snapshot_0010_a1p000_particles.png)
+
+Run-history diagnostics:
+
+![History summary](docs/assets/simulation/history_summary.png)
+
+Additional generated PNGs and the plot manifest live under
+`docs/assets/simulation/`.
+
+## Physics Pipeline
+
+### Cosmology Model
+
+The project assumes a flat late-time LCDM universe, so matter and dark energy
+approximately close the density budget:
+
+```text
+Omega_m + Omega_Lambda ~= 1
+H(a) = H0 * sqrt(Omega_m / a^3 + Omega_Lambda)
+```
+
+Radiation is neglected for these educational late-time PM experiments. The code
+keeps the central LCDM quantities explicit in `CosmologyConfig`: `h0`,
+`omega_m`, `omega_lambda`, `sigma8`, scalar tilt `n_s`, and the starting/final
+scale factors.
+
+### Initial Conditions
+
+The initial overdensity field is a Gaussian random field generated in Fourier
+space. The power spectrum is shaped as a primordial power law modified by a CDM
+transfer function:
+
+```text
+P(k) = A * k^n_s * T(k)^2
+```
+
+The field is inverse-FFT'd into real space as `delta(x)`, where
+`delta = (rho - rho_bar) / rho_bar`. Particles begin on a Lagrangian grid `q`
+and are displaced with the Zel'dovich approximation:
+
+```text
+x = q + D(a) * Psi(q)
+```
+
+Here `D(a)` is the normalized linear growth factor, and the displacement field
+comes from the density-derived potential. This bridges the hand-derived notebook
+math with the package implementation in `grf.py`, `spectra.py`, and
+`zeldovich.py`.
+
+### Particle-Mesh Evolution
+
+Each integration step follows the PM loop:
+
+1. Deposit particle mass onto the mesh with Cloud-In-Cell (`CIC`) weights.
+2. Solve the Fourier-space Poisson equation, using the regularized form
+   `phi_k = -delta_k / k^2` for nonzero modes.
+3. Differentiate the potential to obtain acceleration fields on the grid.
+4. Interpolate grid forces back to particle positions with the same CIC shape
+   function.
+5. Advance particles with the scale-factor kick-drift-kick leapfrog step.
+
+CIC is used in both directions: particle-to-grid for density deposition and
+grid-to-particle for force gathering. Periodic wrapping keeps the simulation box
+topologically closed, which is the usual toy-model setup for cosmological PM
+experiments.
 
 ## Codebase Structure
 
 ```text
 lcdm_sim/
-├── configs/                     # Preset simulation configs (smoke/medium/large)
-├── docs/                        # Reproducibility and project docs
+├── configs/                     # Preset simulation configs
+├── docs/                        # Reproducibility docs and generated assets
 ├── notebooks/                   # Package-backed teaching notebooks
 ├── src/lcdm_sim/
 │   ├── config.py                # Typed config loading
-│   ├── types.py                 # Shared dataclasses (fields, particles, runs)
+│   ├── types.py                 # Shared dataclasses
 │   ├── cosmology.py             # H(a), growth factor/rate
-│   ├── spectra.py               # Transfer function + P(k) utilities
-│   ├── fft_backend.py           # SciPy / optional pyFFTW FFT backend wrapper
+│   ├── spectra.py               # Transfer function + P(k)
+│   ├── fft_backend.py           # SciPy / optional pyFFTW FFT wrapper
 │   ├── grf.py                   # Gaussian random field generation
-│   ├── zeldovich.py             # Zel'dovich IC generation
+│   ├── zeldovich.py             # Zel'dovich initial conditions
 │   ├── cic.py                   # CIC density deposition / force gather
 │   ├── potential.py             # Poisson solve
-│   ├── forces.py                # Acceleration grids / unit conversion helpers
+│   ├── forces.py                # Acceleration grid helpers
 │   ├── integrators.py           # KDK leapfrog in scale factor a
 │   ├── simulation.py            # End-to-end orchestration
 │   ├── io_hdf5.py               # Snapshot save/load
-│   ├── diagnostics.py           # Stats + comparisons + power spectrum estimates
-│   ├── plotting_static.py       # Matplotlib plots
-│   ├── plotting_interactive.py  # Plotly plots (optional dependency)
+│   ├── diagnostics.py           # Stats + power spectrum estimates
+│   ├── plotting_static.py       # Matplotlib PNG plots
+│   ├── plotting_interactive.py  # Optional Plotly plots
 │   ├── validation.py            # Validation suite + run-dir validation
 │   └── cli.py                   # CLI entrypoints
 └── tests/                       # Phase-by-phase test coverage
 ```
 
-## Dependencies / Requirements
-
-### Python
-
-- Python `>=3.11`
-
-### Runtime dependencies (current branch)
-
-The code currently relies on a manually managed environment (the `pyproject.toml`
-metadata is intentionally minimal at this stage). Typical runtime/testing
-dependencies used on this branch:
-
-- `numpy`
-- `scipy`
-- `PyYAML`
-- `h5py` (for snapshot I/O and validation from run directories)
-- `matplotlib` (static plots)
-- `plotly` (interactive plots)
-
-Optional / performance-oriented:
-
-- `pyfftw` (optional FFT backend)
-- `numba` (reserved for future acceleration paths)
-
-Development / testing:
-
-- `pytest`
-- `ruff`
-- `nbformat` (used to generate/check notebooks in tests/tooling)
-
-### Versioning note
-
-This branch may be tested against a deliberately pinned historical dependency set.
-Do not assume the latest package versions are required. Prefer adapting code to
-the existing environment for reproducibility unless an upgrade is explicitly
-requested.
-
 ## Quickstart
 
-### 1) Create/activate an environment (example with `uv`)
+### 1. Create an environment
 
 ```bash
-uv venv .venv
+python -m venv .venv
 source .venv/bin/activate
+python -m pip install --upgrade pip
 ```
 
-### 2) Install project and supporting libraries
-
-Minimal editable install:
+### 2. Install the package
 
 ```bash
-uv pip install -e .
+python -m pip install -e ".[dev,interactive]"
 ```
 
-Typical local development/test environment (example):
+For optional FFT/acceleration experiments:
 
 ```bash
-uv pip install numpy scipy pyyaml h5py matplotlib plotly pytest ruff nbformat pyfftw numba
+python -m pip install -e ".[dev,interactive,performance]"
 ```
 
-### 3) Run tests
+### 3. Run tests
 
 ```bash
 PYTHONPATH=src pytest -q tests
 ```
 
-## Usage (Current)
+## CLI Usage
 
-### CLI scaffold
+Run a deterministic gallery simulation:
 
 ```bash
-PYTHONPATH=src python -m lcdm_sim.cli --help
-PYTHONPATH=src python -m lcdm_sim.cli run --config configs/smoke.yaml
-PYTHONPATH=src python -m lcdm_sim.cli validate --run-dir <run_dir>
+PYTHONPATH=src python -m lcdm_sim.cli run \
+  --config configs/gallery.yaml \
+  --out-dir outputs/gallery \
+  --num-snapshots 5
 ```
 
-Notes:
+This writes:
 
-- `validate` is implemented and writes a JSON report under `metrics/`.
-- `plot` and `export-web-dataset` commands are currently scaffolds/placeholders.
+- `outputs/gallery/snapshots/snapshot_*.h5`
+- `outputs/gallery/metrics/history.json`
+- `outputs/gallery/metrics/run_summary.json`
+- `outputs/gallery/metrics/validation_report.json`
 
-### Python API (end-to-end example)
+Generate PNGs from those snapshots:
 
-```python
-from pathlib import Path
-from lcdm_sim.config import load_simulation_config
-from lcdm_sim.simulation import run_simulation
-from lcdm_sim.validation import run_validation_suite
-
-cfg = load_simulation_config("configs/smoke.yaml")
-result = run_simulation(cfg, output_dir=Path("outputs/demo"), num_snapshots=3, save_snapshots=True)
-report = run_validation_suite(result, cfg)
-print(report.ok, report.summary)
+```bash
+PYTHONPATH=src python -m lcdm_sim.cli plot \
+  --run-dir outputs/gallery \
+  --out-dir docs/assets/simulation \
+  --max-snapshots 5
 ```
 
-## Outputs
+Validate an existing run directory:
 
-When snapshot saving is enabled, runs write HDF5 snapshots under:
+```bash
+PYTHONPATH=src python -m lcdm_sim.cli validate --run-dir outputs/gallery
+```
 
-- `<run_dir>/snapshots/snapshot_XXXX.h5`
+`export-web-dataset` remains a placeholder for a future browser-emulator export
+workflow.
 
-Validation reports are written to:
+## Notebooks And Notes
 
-- `<run_dir>/metrics/validation_report.json`
+The root `lcdm_sim_*.ipynb` notebooks are the original exploratory notebook
+sequence. The `notebooks/` folder contains package-backed teaching notebooks
+that import from `lcdm_sim` instead of redefining the engine inline.
 
-Plot helpers write PNG/HTML artifacts to user-specified paths.
+The README physics walkthrough is a concise synthesis of the project's
+handwritten LCDM notes: flat-universe density parameters, critical density,
+growth factor normalization, Gaussian random fields, transfer functions,
+Zel'dovich displacements, CIC interpolation, Fourier Poisson solves, and
+cosmological leapfrog integration.
 
-## Notebooks
+## Validation
 
-See `notebooks/README.md` for the package-backed teaching notebooks. These
-notebooks import from `lcdm_sim` and are intended to replace inline/monolithic
-implementations for ongoing development and learning.
+The automated checks cover:
 
-## Reproducibility
+- config and CLI behavior
+- Gaussian random fields, spectra, and FFT helpers
+- Zel'dovich initial conditions
+- CIC density deposition and force interpolation
+- Poisson/acceleration grids
+- KDK integration and end-to-end simulation orchestration
+- HDF5 snapshot I/O
+- static and optional interactive plotting
+- run-directory validation reports
 
-See `docs/reproducibility.md` for an environment-agnostic workflow covering:
+Expected verification command:
 
-- environment setup
-- test execution
-- smoke runs
-- deterministic behavior notes
+```bash
+PYTHONPATH=src pytest -q tests
+```
 
-## Testing
+## Lineage
 
-The test suite is organized by implementation phase and validates:
-
-- config/CLI scaffolding
-- physics core correctness and shape/finite checks
-- integrator + orchestration + HDF5 I/O
-- diagnostics + plotting artifact generation
-- validation suite behavior
-- notebook refactor presence/import usage
+This project was inspired by
+[`grkooij/Cosmological-Particle-Mesh-Simulation`](https://github.com/grkooij/Cosmological-Particle-Mesh-Simulation),
+but it has diverged into a package-first educational implementation with typed
+configs, test coverage, HDF5 snapshots, CLI integration, validation reports, and
+reproducible generated figures.
