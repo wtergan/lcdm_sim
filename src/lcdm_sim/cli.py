@@ -26,6 +26,7 @@ from .validation import (
     save_validation_report_json,
     validate_run_directory,
 )
+from .web_export import WebDatasetExportError, export_web_dataset
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -309,7 +310,12 @@ def _handle_validate(args: argparse.Namespace) -> int:
 
 
 def _handle_export_web_dataset(args: argparse.Namespace) -> int:
-    print(f"export-web-dataset (stub): run_dir={args.run_dir}, out={args.out}")
+    try:
+        manifest_path = export_web_dataset(args.run_dir, args.out)
+    except WebDatasetExportError as exc:
+        print(f"export-web-dataset: failed: {exc}")
+        return 1
+    print(f"export-web-dataset: manifest={manifest_path} out={args.out}")
     return 0
 
 
