@@ -163,6 +163,7 @@ lcdm_sim/
 │   ├── plotting_static.py       # Matplotlib PNG plots
 │   ├── plotting_interactive.py  # Optional Plotly plots
 │   ├── validation.py            # Validation suite + run-dir validation
+│   ├── web_export.py            # Compact browser-facing dataset export
 │   └── cli.py                   # CLI entrypoints
 └── tests/                       # Phase-by-phase test coverage
 ```
@@ -233,14 +234,19 @@ Validate an existing run directory:
 PYTHONPATH=src python -m lcdm_sim.cli validate --run-dir outputs/gallery
 ```
 
-`export-web-dataset` remains a placeholder for a future browser-emulator export
-workflow.
+Export a compact browser-facing dataset for `lcdm_explorer`:
+
+```bash
+PYTHONPATH=src python -m lcdm_sim.cli export-web-dataset \
+  --run-dir outputs/gallery \
+  --out outputs/web-gallery
+```
 
 ## Notebooks And Notes
 
-The root `lcdm_sim_*.ipynb` notebooks are the original exploratory notebook
-sequence. The `notebooks/` folder contains package-backed teaching notebooks
-that import from `lcdm_sim` instead of redefining the engine inline.
+The `notebooks/` folder is the maintained notebook sequence. Those notebooks
+are package-backed teaching materials that import from `lcdm_sim` instead of
+redefining the engine inline.
 
 The README physics walkthrough is a concise synthesis of the project's
 handwritten LCDM notes: flat-universe density parameters, critical density,
