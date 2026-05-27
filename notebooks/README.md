@@ -9,6 +9,10 @@ These notebooks are the learning-facing companion to the package code in
 `src/lcdm_sim/`. They demonstrate the simulation workflow while importing the
 engine modules instead of re-implementing the core PM logic inline.
 
+They are the authoritative notebook sequence for the repo; the older root-level
+exploratory notebooks were removed after this package-backed sequence replaced
+their inline implementations.
+
 ## Notebook Sequence
 
 - `01_intro_parameters.ipynb`
